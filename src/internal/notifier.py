@@ -1,41 +1,61 @@
 import requests
+import json
 from plyer import notification
-from src.shared.config import webhook
 from src.shared.utils import check_null_data
 from src.shared.log import logger
 
-def send_discord_embed(row):
-    embed = {
-        "title": check_null_data(row["Naziv"]),
-        "url": check_null_data(row["URL"]),
-        "color": 16711738,
-        "fields": [
-            {"name": "Cena", "value": f"{check_null_data(row['Cena'])} €", "inline": True},
-            {"name": "Registracija", "value": check_null_data(row['1.registracija']), "inline": True},
-            {"name": "Kilometri", "value": check_null_data(row['Prevoženih']), "inline": True},
-            {"name": "Motor", "value": check_null_data(row['Motor']), "inline": True}
-        ],
-        "footer": {"text": "Avto.net Scraper 🛠️"},
-    }
-
-    payload = {
-        "embeds": [embed]
-    }
-
-    headers = {"Content-Type": "application/json"}
-
+def load_pushover_config():
+    """Load Pushover configuration from config file."""
     try:
-        response = requests.post(webhook['url'], json=payload, headers=headers)
-        if response.status_code != 204 and response.status_code != 200:
-            logger.warning(f"Failed to send embed to Discord: {response.status_code} - {response.text}")
-        else:
-            logger.info("Discord embed sent successfully.")
+        with open('config/pushover.json', 'r') as f:
+            return json.load(f)
     except Exception:
-        logger.exception("Exception occurred while sending embed to Discord.")
+        logger.exception("Failed to load Pushover config")
+        return None
 
-def send_discord_notifications(rows):
+def send_pushover_notification(row):
+    """Send a single car listing notification via Pushover."""
+    config = load_pushover_config()
+    if not config:
+        logger.error("Pushover config not available")
+        return
+    
+    # Format the message with car details
+    title = f"🚗 {check_null_data(row['Naziv'])}"
+    message = f"💰 {check_null_data(row['Cena'])} €\n"
+    message += f"📅 {check_null_data(row['1.registracija'])}\n"
+    message += f"🛣️ {check_null_data(row['Prevoženih'])}\n"
+    message += f"🔧 {check_null_data(row['Motor'])}\n"
+    
+    # Add number of owners if available
+    lastnikov = check_null_data(row.get('lastnikov', None))
+    if lastnikov and lastnikov != ":x:":
+        message += f"👤 Lastnikov: {lastnikov}\n"
+    
+    message += f"🔗 {check_null_data(row['URL'])}"
+    
+    payload = {
+        "token": config["api_token"],
+        "user": config["user_key"],
+        "title": title,
+        "message": message,
+        "sound": config.get("sound", "pushover"),
+        "priority": config.get("priority", 0)
+    }
+    
+    try:
+        response = requests.post("https://api.pushover.net/1/messages.json", data=payload)
+        if response.status_code == 200:
+            logger.info("Pushover notification sent successfully.")
+        else:
+            logger.warning(f"Failed to send Pushover notification: {response.status_code} - {response.text}")
+    except Exception:
+        logger.exception("Exception occurred while sending Pushover notification.")
+
+def send_pushover_notifications(rows):
+    """Send notifications for multiple car listings via Pushover."""
     for _, row in rows.iterrows():
-        send_discord_embed(row)
+        send_pushover_notification(row)
 
 def send_notification():
     try:

@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from src.internal.notifier import send_discord_notifications
+from src.internal.notifier import send_pushover_notifications
 from src.shared.config import get_columns
 from src.shared.log import logger
 
@@ -36,6 +36,6 @@ def handle_data(new_rows):
 
     if not new_rows.empty:
         logger.info(f"Found {len(new_rows)} new car listings.")
-        send_discord_notifications(new_rows)
+        send_pushover_notifications(new_rows)
     else:
         logger.info("No new listings to add.")

@@ -10,19 +10,33 @@ from bs4 import BeautifulSoup
 from src.shared.config import (
     params, build_url, get_columns, get_selectors, get_param_limits
 )
+from src.shared.headers import get_playwright_context_options, get_random_headers
 from src.shared.log import logger
 
 async def scrape_with_js_and_cookies(params):
     url = build_url(params)
-    browser = None
-
+    logger.info(f"Built search URL: {url}")
+    
     try:
+        # Get randomized context options for this request
+        context_options = get_playwright_context_options()
+        
+        # Log the randomized settings being used for debugging
+        logger.debug(f"Using User-Agent: {context_options['user_agent'][:50]}...")
+        logger.debug(f"Viewport: {context_options['viewport']['width']}x{context_options['viewport']['height']}")
+        logger.debug(f"Timezone: {context_options['timezone_id']}")
+        logger.debug(f"Locale: {context_options['locale']}")
+        if 'proxy' in context_options:
+            logger.debug(f"Using proxy: {context_options['proxy']['server']}")
+        else:
+            logger.debug("No proxy configured")
+        
         async with async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=True,
                 args=["--disable-blink-features=AutomationControlled"]
             )
-            context = await browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
+            context = await browser.new_context(**context_options)
             page = await context.new_page()
 
             await asyncio.sleep(random.uniform(2, 5))  # anti-bot cooldown
@@ -50,9 +64,6 @@ async def scrape_with_js_and_cookies(params):
     except Exception:
         logger.exception("Error during scraping.")
         return 500
-    finally:
-        if browser:
-            await browser.close()
 
 
 async def scrape_brand_with_pagination(brand: str, max_pages: int) -> pd.DataFrame:
