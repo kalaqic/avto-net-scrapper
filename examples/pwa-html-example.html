@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avto-Net Scraper - PWA Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .error {
+            background: #ffe7e7;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .listing-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .listing-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .listing-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .details {
+            margin-bottom: 15px;
+        }
+
+        .details p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .view-listing {
+            display: inline-block;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .view-listing:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Avto-Net Car Scraper</h1>
+
+        <form class="search-form" id="searchForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="brand">Brand:</label>
+                    <input type="text" id="brand" placeholder="e.g., Volkswagen (empty for all)">
+                </div>
+
+                <div class="form-group">
+                    <label for="model">Model:</label>
+                    <input type="text" id="model" placeholder="e.g., Golf (empty for all)">
+                </div>
+
+                <div class="form-group">
+                    <label for="cenaMin">Min Price (€):</label>
+                    <input type="number" id="cenaMin" value="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="cenaMax">Max Price (€):</label>
+                    <input type="number" id="cenaMax" value="100000">
+                </div>
+
+                <div class="form-group">
+                    <label for="letnikMin">Min Year:</label>
+                    <input type="number" id="letnikMin" value="2015">
+                </div>
+
+                <div class="form-group">
+                    <label for="letnikMax">Max Year:</label>
+                    <input type="number" id="letnikMax" value="2023">
+                </div>
+
+                <div class="form-group">
+                    <label for="kmMax">Max Mileage:</label>
+                    <input type="number" id="kmMax" value="100000">
+                </div>
+
+                <div class="form-group">
+                    <label for="bencin">Fuel Type:</label>
+                    <select id="bencin">
+                        <option value="0">All</option>
+                        <option value="201">Petrol</option>
+                        <option value="202">Diesel</option>
+                        <option value="207">Electric</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="searchBtn">Search Cars</button>
+        </form>
+
+        <div id="status"></div>
+        <div id="error"></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8000'; // Change to your API URL
+
+        // API Client Class
+        class AvtoNetScraperAPI {
+            constructor(baseUrl = API_BASE_URL) {
+                this.baseUrl = baseUrl;
+            }
+
+            async startScrape(filters) {
+                const response = await fetch(`${this.baseUrl}/api/scrape`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(filters),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to start scrape');
+                }
+
+                return await response.json();
+            }
+
+            async checkStatus(jobId) {
+                const response = await fetch(`${this.baseUrl}/api/scrape/${jobId}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to check status');
+                }
+
+                return await response.json();
+            }
+
+            async getResults(jobId) {
+                const response = await fetch(`${this.baseUrl}/api/scrape/${jobId}/results`);
+                
+                if (response.status === 202) {
+                    throw new Error('Job still running');
+                }
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to get results');
+                }
+
+                return await response.json();
+            }
+
+            async scrapeAndWait(filters, options = {}) {
+                const {
+                    pollInterval = 2000,
+                    maxAttempts = 60,
+                    onStatusUpdate = null,
+                } = options;
+
+                const { job_id } = await this.startScrape(filters);
+
+                let attempts = 0;
+                while (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+                    const status = await this.checkStatus(job_id);
+                    
+                    if (onStatusUpdate) {
+                        onStatusUpdate(status);
+                    }
+
+                    if (status.status === 'completed') {
+                        return await this.getResults(job_id);
+                    } else if (status.status === 'failed') {
+                        throw new Error(`Scrape failed: ${status.error || 'Unknown error'}`);
+                    }
+
+                    attempts++;
+                }
+
+                throw new Error('Scrape timed out');
+            }
+        }
+
+        // Initialize API
+        const api = new AvtoNetScraperAPI();
+
+        // DOM Elements
+        const form = document.getElementById('searchForm');
+        const searchBtn = document.getElementById('searchBtn');
+        const statusDiv = document.getElementById('status');
+        const errorDiv = document.getElementById('error');
+        const resultsDiv = document.getElementById('results');
+
+        // Form submission handler
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Clear previous results
+            statusDiv.innerHTML = '';
+            errorDiv.innerHTML = '';
+            resultsDiv.innerHTML = '';
+
+            // Disable button
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+
+            // Get form values
+            const filters = {
+                znamka: [document.getElementById('brand').value || ''],
+                model: document.getElementById('model').value || '',
+                cenaMin: parseInt(document.getElementById('cenaMin').value) || 0,
+                cenaMax: parseInt(document.getElementById('cenaMax').value) || 100000,
+                letnikMin: parseInt(document.getElementById('letnikMin').value) || 2000,
+                letnikMax: parseInt(document.getElementById('letnikMax').value) || 2090,
+                kmMax: parseInt(document.getElementById('kmMax').value) || 300000,
+                bencin: parseInt(document.getElementById('bencin').value) || 0,
+            };
+
+            try {
+                // Start scrape and wait for results
+                const results = await api.scrapeAndWait(filters, {
+                    onStatusUpdate: (status) => {
+                        statusDiv.innerHTML = `
+                            <div class="status">
+                                <strong>Status:</strong> ${status.status}
+                                ${status.total_listings !== null ? `<br><strong>Found:</strong> ${status.total_listings} listings` : ''}
+                            </div>
+                        `;
+                    }
+                });
+
+                // Display results
+                if (results.listings.length === 0) {
+                    resultsDiv.innerHTML = '<p class="loading">No listings found matching your criteria.</p>';
+                } else {
+                    resultsDiv.innerHTML = `
+                        <h2 style="margin-bottom: 20px;">Results (${results.total_listings})</h2>
+                        <div class="results">
+                            ${results.listings.map(listing => `
+                                <div class="listing-card">
+                                    <h3>${listing.Naziv || 'N/A'}</h3>
+                                    <p class="price">${listing.Cena || 'N/A'} €</p>
+                                    <div class="details">
+                                        <p><strong>Year:</strong> ${listing['1.registracija'] || 'N/A'}</p>
+                                        <p><strong>Mileage:</strong> ${listing.Prevoženih || 'N/A'}</p>
+                                        <p><strong>Transmission:</strong> ${listing.Menjalnik || 'N/A'}</p>
+                                        <p><strong>Engine:</strong> ${listing.Motor || 'N/A'}</p>
+                                        ${listing.lastnikov ? `<p><strong>Owners:</strong> ${listing.lastnikov}</p>` : ''}
+                                    </div>
+                                    <a href="${listing.URL}" target="_blank" rel="noopener noreferrer" class="view-listing">
+                                        View on Avto.net →
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                statusDiv.innerHTML = `
+                    <div class="status">
+                        <strong>✓ Completed!</strong> Found ${results.total_listings} listings.
+                    </div>
+                `;
+
+            } catch (error) {
+                errorDiv.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                // Re-enable button
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search Cars';
+            }
+        });
+    </script>
+</body>
+</html>
+

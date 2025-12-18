@@ -40,16 +40,36 @@ async def scrape_with_js_and_cookies(params):
             page = await context.new_page()
 
             await asyncio.sleep(random.uniform(2, 5))  # anti-bot cooldown
-            await page.goto(url, timeout=60000)
+            await page.goto(url, timeout=60000, wait_until="networkidle")
+
+            # Wait a bit more for dynamic content to load
+            await asyncio.sleep(2)
 
             content = await page.content()
 
-            # Check for empty result message
-            if "Ni zadetkov" in content or "ni rezultatov" in content:
+            # Check for empty result message (case-insensitive, check multiple variations)
+            content_lower = content.lower()
+            no_results_indicators = ["ni zadetkov", "ni rezultatov", "no results", "ni najdenih"]
+            has_no_results_msg = any(indicator in content_lower for indicator in no_results_indicators)
+            
+            # Double-check by looking for result rows - sometimes the message appears but results exist
+            has_result_rows = "GO-Results-Row" in content
+            
+            if has_no_results_msg and not has_result_rows:
                 logger.info(f"No results on page {params['stran']} for '{params['znamka']}' — skipping.")
                 return ""
+            elif has_no_results_msg and has_result_rows:
+                logger.debug(f"Found 'no results' message but also found result rows - continuing with parsing")
 
-            await page.wait_for_selector("div." + get_selectors()["result_row"], timeout=15000)
+            # Try to wait for selector, but don't fail if it doesn't appear (might be empty page)
+            try:
+                await page.wait_for_selector("div." + get_selectors()["result_row"], timeout=10000)
+            except Exception:
+                # If selector doesn't appear, check content again
+                content = await page.content()
+                if "GO-Results-Row" not in content:
+                    logger.info(f"No result rows found on page {params['stran']} for '{params['znamka']}'")
+                    return ""
 
             soup = BeautifulSoup(content, "html.parser")
             for tag in soup(["script", "style"]):

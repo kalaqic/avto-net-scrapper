@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#007bff">
+    <title>Avto-Net Scraper - Monitor</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .api-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.online {
+            background: #4caf50;
+        }
+
+        .status-indicator.offline {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .credentials-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .credentials-section h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .credentials-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .credentials-info span {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            width: auto;
+            margin: 0;
+        }
+
+        .advanced-filters {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #e0e0e0;
+        }
+
+        .toggle-advanced {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-advanced:hover {
+            text-decoration: underline;
+        }
+
+        .advanced-content {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .advanced-content.show {
+            display: block;
+        }
+
+        .api-config {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .api-config input {
+            width: 100%;
+            margin-top: 8px;
+            background: rgba(255,255,255,0.9);
+        }
+
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Avto-Net Scraper</h1>
+            <p>Monitor car listings automatically</p>
+        </div>
+
+        <div class="api-config">
+            <label for="apiUrl" style="color: white; font-weight: 600;">API Server URL:</label>
+            <input 
+                type="text" 
+                id="apiUrl" 
+                placeholder="https://your-api-server.com or http://localhost:8000"
+                value="http://localhost:8000"
+            />
+            <small style="display: block; margin-top: 5px; opacity: 0.9;">
+                Enter your API server URL. For cloud deployment, use your server's public URL.
+            </small>
+        </div>
+
+        <div class="api-status" id="apiStatus">
+            <span class="status-indicator offline" id="statusIndicator"></span>
+            <span id="statusText">Checking API connection...</span>
+        </div>
+
+        <div class="card">
+            <div class="credentials-section" id="credentialsSection" style="display: none;">
+                <h3>🔐 Saved Credentials</h3>
+                <div class="credentials-info">
+                    <span>✓ Credentials saved</span>
+                    <button class="btn btn-small btn-primary" onclick="showCredentialsForm()">Change</button>
+                </div>
+            </div>
+
+            <form id="registrationForm">
+                <div class="form-section" id="credentialsForm">
+                    <h2>Credentials</h2>
+                    <div class="form-group full-width">
+                        <label for="userId">User ID:</label>
+                        <input 
+                            type="text" 
+                            id="userId" 
+                            placeholder="e.g., user_123 or your_email@example.com"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pushoverApiToken">Pushover API Token:</label>
+                        <input 
+                            type="text" 
+                            id="pushoverApiToken" 
+                            placeholder="Your Pushover API token"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pushoverUserKey">Pushover User Key:</label>
+                        <input 
+                            type="text" 
+                            id="pushoverUserKey" 
+                            placeholder="Your Pushover user key"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Search Filters</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="brand">Brand:</label>
+                            <select id="brand">
+                                <option value="">All Brands</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model">Model:</label>
+                            <select id="model" disabled>
+                                <option value="">Select Brand First</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="priceRange">Price Range:</label>
+                            <select id="priceRange">
+                                <option value="">All Prices</option>
+                                <option value="akcija">With Discount Price</option>
+                                <option value="brez">Without Price</option>
+                                <option value="0-1000">Up to 1,000 €</option>
+                                <option value="1000-2500">1,000 € - 2,500 €</option>
+                                <option value="2500-5000">2,500 € - 5,000 €</option>
+                                <option value="5000-7500">5,000 € - 7,500 €</option>
+                                <option value="7500-10000">7,500 € - 10,000 €</option>
+                                <option value="10000-12500">10,000 € - 12,500 €</option>
+                                <option value="12500-15000">12,500 € - 15,000 €</option>
+                                <option value="15000-20000">15,000 € - 20,000 €</option>
+                                <option value="20000-25000">20,000 € - 25,000 €</option>
+                                <option value="25000-30000">25,000 € - 30,000 €</option>
+                                <option value="30000-40000">30,000 € - 40,000 €</option>
+                                <option value="40000-50000">40,000 € - 50,000 €</option>
+                                <option value="100000+">Over 100,000 €</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="advanced-filters">
+                        <button type="button" class="toggle-advanced" onclick="toggleAdvanced()">
+                            <span id="toggleIcon">+</span>
+                            <span>Add More Filters</span>
+                        </button>
+                        <div class="advanced-content" id="advancedContent">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="letnikMin">Min Year:</label>
+                                    <input 
+                                        type="number" 
+                                        id="letnikMin" 
+                                        placeholder="2000"
+                                        min="1900"
+                                        max="2090"
+                                    />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="letnikMax">Max Year:</label>
+                                    <input 
+                                        type="number" 
+                                        id="letnikMax" 
+                                        placeholder="2024"
+                                        min="1900"
+                                        max="2090"
+                                    />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="kmMax">Max Mileage (km):</label>
+                                    <input 
+                                        type="number" 
+                                        id="kmMax" 
+                                        placeholder="100000"
+                                        min="0"
+                                    />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="bencin">Fuel Type:</label>
+                                    <select id="bencin">
+                                        <option value="0">All</option>
+                                        <option value="201">Petrol</option>
+                                        <option value="202">Diesel</option>
+                                        <option value="207">Electric</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="message"></div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">Start Monitoring</button>
+                <button type="button" class="btn btn-danger" id="stopBtn" onclick="stopMonitoring()" style="display: none;">Stop Monitoring</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Car brands and models data
+        const CAR_BRANDS = {
+            "": [],
+            "Audi": ["", "A1", "A3", "A4", "A5", "A6", "A7", "A8", "Q2", "Q3", "Q5", "Q7", "Q8", "TT", "e-tron"],
+            "BMW": ["", "1 Series", "2 Series", "3 Series", "4 Series", "5 Series", "6 Series", "7 Series", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "i3", "i4", "iX"],
+            "Mercedes-Benz": ["", "A-Class", "B-Class", "C-Class", "E-Class", "S-Class", "GLA", "GLB", "GLC", "GLE", "GLS", "CLA", "CLS", "G-Class"],
+            "Volkswagen": ["", "Golf", "Polo", "Passat", "Tiguan", "Touareg", "Arteon", "ID.3", "ID.4", "ID.Buzz"],
+            "Toyota": ["", "Yaris", "Corolla", "Camry", "RAV4", "Highlander", "Prius", "C-HR", "Land Cruiser"],
+            "Ford": ["", "Fiesta", "Focus", "Mondeo", "Kuga", "Edge", "Explorer", "Mustang", "Puma"],
+            "Opel": ["", "Corsa", "Astra", "Insignia", "Crossland", "Grandland", "Mokka"],
+            "Renault": ["", "Clio", "Megane", "Captur", "Kadjar", "Koleos", "Zoe"],
+            "Peugeot": ["", "208", "308", "508", "2008", "3008", "5008"],
+            "Škoda": ["", "Fabia", "Octavia", "Superb", "Kamiq", "Karoq", "Kodiaq"],
+            "Seat": ["", "Ibiza", "Leon", "Ateca", "Tarraco"],
+            "Hyundai": ["", "i10", "i20", "i30", "Tucson", "Santa Fe", "Kona", "Ioniq"],
+            "Kia": ["", "Picanto", "Rio", "Ceed", "Sportage", "Sorento", "Niro", "EV6"],
+            "Mazda": ["", "2", "3", "6", "CX-3", "CX-5", "CX-30", "MX-5"],
+            "Nissan": ["", "Micra", "Leaf", "Qashqai", "X-Trail", "Juke", "Ariya"],
+            "Honda": ["", "Civic", "Accord", "CR-V", "HR-V", "e"],
+            "Fiat": ["", "500", "Panda", "Tipo", "500X", "500L"],
+            "Citroën": ["", "C3", "C4", "C5", "C3 Aircross", "C5 Aircross"],
+            "Dacia": ["", "Sandero", "Duster", "Logan", "Spring"],
+            "Suzuki": ["", "Swift", "Vitara", "S-Cross", "Ignis"],
+            "Mitsubishi": ["", "Outlander", "Eclipse Cross", "ASX"],
+            "Subaru": ["", "Impreza", "Forester", "Outback", "XV"],
+            "Volvo": ["", "V40", "V60", "V90", "XC40", "XC60", "XC90"],
+            "Porsche": ["", "911", "Cayenne", "Macan", "Panamera", "Taycan"],
+            "Jaguar": ["", "XE", "XF", "F-Pace", "E-Pace", "I-Pace"],
+            "Land Rover": ["", "Discovery", "Range Rover", "Range Rover Sport", "Evoque", "Defender"],
+            "Mini": ["", "Cooper", "Countryman", "Clubman"],
+            "Smart": ["", "Fortwo", "Forfour"],
+            "Tesla": ["", "Model 3", "Model S", "Model X", "Model Y"]
+        };
+
+        let API_BASE_URL = localStorage.getItem('apiUrl') || 'http://localhost:8000';
+        let savedCredentials = JSON.parse(localStorage.getItem('credentials') || '{}');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeBrands();
+            loadSavedCredentials();
+            checkApiStatus();
+            setInterval(checkApiStatus, 10000);
+            
+            // Watch API URL changes
+            document.getElementById('apiUrl').addEventListener('change', (e) => {
+                API_BASE_URL = e.target.value;
+                localStorage.setItem('apiUrl', API_BASE_URL);
+                checkApiStatus();
+            });
+        });
+
+        function initializeBrands() {
+            const brandSelect = document.getElementById('brand');
+            Object.keys(CAR_BRANDS).forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand || 'All Brands';
+                brandSelect.appendChild(option);
+            });
+
+            brandSelect.addEventListener('change', (e) => {
+                const selectedBrand = e.target.value;
+                const modelSelect = document.getElementById('model');
+                modelSelect.innerHTML = '';
+                
+                if (selectedBrand && CAR_BRANDS[selectedBrand]) {
+                    modelSelect.disabled = false;
+                    CAR_BRANDS[selectedBrand].forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model || 'All Models';
+                        modelSelect.appendChild(option);
+                    });
+                } else {
+                    modelSelect.disabled = true;
+                    modelSelect.innerHTML = '<option value="">Select Brand First</option>';
+                }
+            });
+        }
+
+        function loadSavedCredentials() {
+            if (savedCredentials.userId && savedCredentials.pushoverApiToken && savedCredentials.pushoverUserKey) {
+                document.getElementById('credentialsSection').style.display = 'block';
+                document.getElementById('credentialsForm').style.display = 'none';
+                document.getElementById('userId').value = savedCredentials.userId;
+                document.getElementById('pushoverApiToken').value = savedCredentials.pushoverApiToken;
+                document.getElementById('pushoverUserKey').value = savedCredentials.pushoverUserKey;
+            }
+        }
+
+        function showCredentialsForm() {
+            document.getElementById('credentialsSection').style.display = 'none';
+            document.getElementById('credentialsForm').style.display = 'block';
+        }
+
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            const icon = document.getElementById('toggleIcon');
+            content.classList.toggle('show');
+            icon.textContent = content.classList.contains('show') ? '−' : '+';
+        }
+
+        async function checkApiStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const apiUrlInput = document.getElementById('apiUrl');
+            
+            API_BASE_URL = apiUrlInput.value || API_BASE_URL;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    statusIndicator.className = 'status-indicator online';
+                    statusText.textContent = `API Online - ${data.active_users || 0} active user(s)`;
+                } else {
+                    throw new Error('API not responding');
+                }
+            } catch (error) {
+                statusIndicator.className = 'status-indicator offline';
+                statusText.textContent = 'API Offline - Make sure the server is running';
+            }
+        }
+
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = '';
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Starting...';
+
+            const userId = document.getElementById('userId').value.trim();
+            const pushoverApiToken = document.getElementById('pushoverApiToken').value.trim();
+            const pushoverUserKey = document.getElementById('pushoverUserKey').value.trim();
+            const brand = document.getElementById('brand').value;
+            const model = document.getElementById('model').value;
+            const priceRange = document.getElementById('priceRange').value;
+
+            // Build filters - only include what's set
+            const filters = {
+                znamka: brand ? [brand] : [''],
+                model: model || ''
+            };
+
+            // Map price range to subcenaMIN/subcenaMAX values
+            // Based on avto.net's price range system
+            if (priceRange) {
+                const priceMap = {
+                    'akcija': { subcenaMIN: 1, subcenaMAX: 1 },  // With discount price
+                    'brez': { subcenaMIN: 2, subcenaMAX: 2 },     // Without price
+                    '0-1000': { subcenaMIN: 3, subcenaMAX: 1000 },
+                    '1000-2500': { subcenaMIN: 1000, subcenaMAX: 2500 },
+                    '2500-5000': { subcenaMIN: 2500, subcenaMAX: 5000 },
+                    '5000-7500': { subcenaMIN: 5000, subcenaMAX: 7500 },
+                    '7500-10000': { subcenaMIN: 7500, subcenaMAX: 10000 },
+                    '10000-12500': { subcenaMIN: 10000, subcenaMAX: 12500 },
+                    '12500-15000': { subcenaMIN: 12500, subcenaMAX: 15000 },
+                    '15000-20000': { subcenaMIN: 15000, subcenaMAX: 20000 },
+                    '20000-25000': { subcenaMIN: 20000, subcenaMAX: 25000 },
+                    '25000-30000': { subcenaMIN: 25000, subcenaMAX: 30000 },
+                    '30000-40000': { subcenaMIN: 30000, subcenaMAX: 40000 },
+                    '40000-50000': { subcenaMIN: 40000, subcenaMAX: 50000 },
+                    '100000+': { subcenaMIN: 100000, subcenaMAX: 999999 }
+                };
+                
+                if (priceMap[priceRange]) {
+                    filters.subcenaMIN = priceMap[priceRange].subcenaMIN;
+                    filters.subcenaMAX = priceMap[priceRange].subcenaMAX;
+                }
+            }
+
+            // Add advanced filters only if set
+            const letnikMin = document.getElementById('letnikMin').value;
+            const letnikMax = document.getElementById('letnikMax').value;
+            const kmMax = document.getElementById('kmMax').value;
+            const bencin = document.getElementById('bencin').value;
+
+            if (letnikMin) filters.letnikMin = parseInt(letnikMin);
+            if (letnikMax) filters.letnikMax = parseInt(letnikMax);
+            if (kmMax) filters.kmMax = parseInt(kmMax);
+            if (bencin && bencin !== '0') filters.bencin = parseInt(bencin);
+
+            // Save credentials
+            savedCredentials = { userId, pushoverApiToken, pushoverUserKey };
+            localStorage.setItem('credentials', JSON.stringify(savedCredentials));
+
+            try {
+                // First, start the monitoring service
+                const startResponse = await fetch(`${API_BASE_URL}/api/monitoring/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!startResponse.ok) {
+                    console.warn('Start monitoring endpoint not available, continuing...');
+                }
+
+                // Register/update user
+                const response = await fetch(`${API_BASE_URL}/api/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        pushover_api_token: pushoverApiToken,
+                        pushover_user_key: pushoverUserKey,
+                        filters: filters,
+                        notify_on_first_scrape: false
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+
+                messageDiv.innerHTML = `
+                    <div class="message success">
+                        <strong>✅ Monitoring Started!</strong><br>
+                        ${data.message}<br>
+                        <small style="margin-top: 10px; display: block;">
+                            The system will scrape every 60 seconds. You'll receive Pushover notifications for new listings!
+                        </small>
+                    </div>
+                `;
+
+                document.getElementById('credentialsSection').style.display = 'block';
+                document.getElementById('credentialsForm').style.display = 'none';
+                submitBtn.style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'block';
+
+            } catch (error) {
+                messageDiv.innerHTML = `
+                    <div class="message error">
+                        <strong>❌ Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Start Monitoring';
+            }
+        });
+
+        async function stopMonitoring() {
+            if (!confirm('Are you sure you want to stop monitoring? This will stop the scraper and API server.')) {
+                return;
+            }
+
+            const stopBtn = document.getElementById('stopBtn');
+            stopBtn.disabled = true;
+            stopBtn.textContent = 'Stopping...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/monitoring/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    document.getElementById('message').innerHTML = `
+                        <div class="message info">
+                            <strong>⏸️ Monitoring Stopped</strong><br>
+                            The scraper and API server have been stopped.
+                        </div>
+                    `;
+                    stopBtn.style.display = 'none';
+                    document.getElementById('submitBtn').style.display = 'block';
+                } else {
+                    throw new Error('Failed to stop monitoring');
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = `
+                    <div class="message error">
+                        <strong>❌ Error:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                stopBtn.disabled = false;
+                stopBtn.textContent = 'Stop Monitoring';
+            }
+        }
+    </script>
+</body>
+</html>
